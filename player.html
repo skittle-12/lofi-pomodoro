@@ -2,70 +2,86 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Lofi YouTube Audio Player</title>
+<title>Pixel Focus Player</title>
 <style>
   body {
     margin: 0;
     background: #0f172a;
-    font-family: system-ui, sans-serif;
-    color: #e2e8f0;
+    font-family: "Press Start 2P", monospace;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
   }
 
-  .player {
-    width: 260px;
-    padding: 16px;
-    border-radius: 14px;
-    background: #1e293b;
-    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+  /* Container */
+  .pixel-box {
+    width: 330px;
+    height: 420px;
+    background: url("") no-repeat center/cover;
+    border: 4px solid #3b2f2f;
+    image-rendering: pixelated;
+    border-radius: 8px;
+    position: relative;
+    padding-top: 60px;
+  }
+
+  /* Tabs */
+  .tabs {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    background: #2d2424;
+    border-bottom: 4px solid #3b2f2f;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 12px;
+    cursor: pointer;
+    color: #cfc6b8;
+    border-right: 3px solid #3b2f2f;
+  }
+
+  .tab.active {
+    background: #4a3a3a;
+    color: #fff;
+  }
+
+  /* Timer text */
+  .timer {
+    margin-top: 140px;
+    text-align: center;
+    font-size: 22px;
+    color: #ffffff;
+    text-shadow: 0 0 4px #000;
+  }
+
+  /* Audio controls */
+  .controls {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
     text-align: center;
   }
 
-  .disc {
-    width: 90px;
-    height: 90px;
-    margin: 0 auto 12px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #475569 0%, #1e293b 70%);
-    border: 4px solid #334155;
-    animation: spin 4s linear infinite;
-    animation-play-state: paused;
-  }
-
-  @keyframes spin {
-    100% { transform: rotate(360deg); }
-  }
-
-  .time {
-    font-size: 1.4rem;
-    margin-bottom: 8px;
+  .btn {
+    padding: 8px 16px;
+    background: #4a3a3a;
+    border: 3px solid #2d2424;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
   }
 
   .seek {
-    width: 100%;
-  }
-
-  .controls {
+    width: 80%;
     margin-top: 10px;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-  }
-
-  button {
-    padding: 6px 14px;
-    border-radius: 8px;
-    border: none;
-    background: #334155;
-    color: #e2e8f0;
-    cursor: pointer;
-  }
-
-  button:hover {
-    background: #475569;
   }
 
   iframe {
@@ -75,36 +91,75 @@
 </head>
 <body>
 
-<div class="player">
-  <div class="disc" id="disc"></div>
-  <div class="time" id="time">00:00</div>
+<div class="pixel-box">
 
-  <input type="range" id="seek" class="seek" min="0" max="100" value="0">
-
-  <div class="controls">
-    <button id="playPause">Play</button>
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" id="focusTab">FOCUS</div>
+    <div class="tab" id="breakTab">BREAK</div>
   </div>
+
+  <!-- Timer -->
+  <div class="timer" id="timerDisplay">30:00</div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" id="playPause">Play</button>
+    <br>
+    <input type="range" id="seek" class="seek" min="0" max="100" value="0">
+  </div>
+
 </div>
 
-<!-- Hidden YouTube player -->
+<!-- Hidden YouTube Player -->
 <div id="yt"></div>
 
 <script>
+  /* TIMER LOGIC */
+  let focusTime = 30 * 60;
+  let breakTime = 10 * 60;
+  let currentTime = focusTime;
+  let isFocus = true;
+
+  const timerDisplay = document.getElementById("timerDisplay");
+  const focusTab = document.getElementById("focusTab");
+  const breakTab = document.getElementById("breakTab");
+
+  function updateTimerText() {
+    const m = String(Math.floor(currentTime / 60)).padStart(2, "0");
+    const s = String(currentTime % 60).padStart(2, "0");
+    timerDisplay.textContent = `${m}:${s}`;
+  }
+
+  focusTab.onclick = () => {
+    isFocus = true;
+    currentTime = focusTime;
+    focusTab.classList.add("active");
+    breakTab.classList.remove("active");
+    updateTimerText();
+  };
+
+  breakTab.onclick = () => {
+    isFocus = false;
+    currentTime = breakTime;
+    breakTab.classList.add("active");
+    focusTab.classList.remove("active");
+    updateTimerText();
+  };
+
+  updateTimerText();
+
+  /* YOUTUBE AUDIO PLAYER */
   let player;
   let isPlaying = false;
-  let duration = 0;
 
-  const disc = document.getElementById("disc");
-  const timeDisplay = document.getElementById("time");
   const seekBar = document.getElementById("seek");
   const playPauseBtn = document.getElementById("playPause");
 
-  // Load YouTube API
   const tag = document.createElement("script");
   tag.src = "https://www.youtube.com/iframe_api";
   document.body.appendChild(tag);
 
-  // Your YouTube video ID
   const VIDEO_ID = "NJuSStkIZBg";
 
   function onYouTubeIframeAPIReady() {
@@ -114,28 +169,21 @@
       videoId: VIDEO_ID,
       playerVars: { autoplay: 0, controls: 0 },
       events: {
-        onReady: onPlayerReady,
-        onStateChange: onPlayerStateChange
+        onReady: () => {
+          seekBar.max = player.getDuration();
+          updateSeek();
+        },
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.PLAYING) {
+            isPlaying = true;
+            playPauseBtn.textContent = "Pause";
+          } else {
+            isPlaying = false;
+            playPauseBtn.textContent = "Play";
+          }
+        }
       }
     });
-  }
-
-  function onPlayerReady() {
-    duration = player.getDuration();
-    seekBar.max = duration;
-    updateTime();
-  }
-
-  function onPlayerStateChange(event) {
-    if (event.data === YT.PlayerState.PLAYING) {
-      disc.style.animationPlayState = "running";
-      isPlaying = true;
-      playPauseBtn.textContent = "Pause";
-    } else {
-      disc.style.animationPlayState = "paused";
-      isPlaying = false;
-      playPauseBtn.textContent = "Play";
-    }
   }
 
   playPauseBtn.onclick = () => {
@@ -147,16 +195,11 @@
     player.seekTo(seekBar.value, true);
   };
 
-  function updateTime() {
+  function updateSeek() {
     if (player && player.getCurrentTime) {
-      const t = Math.floor(player.getCurrentTime());
-      seekBar.value = t;
-
-      const m = String(Math.floor(t / 60)).padStart(2, "0");
-      const s = String(t % 60).padStart(2, "0");
-      timeDisplay.textContent = `${m}:${s}`;
+      seekBar.value = player.getCurrentTime();
     }
-    requestAnimationFrame(updateTime);
+    requestAnimationFrame(updateSeek);
   }
 </script>
 
