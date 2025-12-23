@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lofi YouTube Audio Player</title>
+<style>
+  body {
+    margin: 0;
+    background: #0f172a;
+    font-family: system-ui, sans-serif;
+    color: #e2e8f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .player {
+    width: 260px;
+    padding: 16px;
+    border-radius: 14px;
+    background: #1e293b;
+    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+
+  .disc {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #475569 0%, #1e293b 70%);
+    border: 4px solid #334155;
+    animation: spin 4s linear infinite;
+    animation-play-state: paused;
+  }
+
+  @keyframes spin {
+    100% { transform: rotate(360deg); }
+  }
+
+  .time {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+  }
+
+  .seek {
+    width: 100%;
+  }
+
+  .controls {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  button {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: none;
+    background: #334155;
+    color: #e2e8f0;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #475569;
+  }
+
+  iframe {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="player">
+  <div class="disc" id="disc"></div>
+  <div class="time" id="time">00:00</div>
+
+  <input type="range" id="seek" class="seek" min="0" max="100" value="0">
+
+  <div class="controls">
+    <button id="playPause">Play</button>
+  </div>
+</div>
+
+<!-- Hidden YouTube player -->
+<div id="yt"></div>
+
+<script>
+  let player;
+  let isPlaying = false;
+  let duration = 0;
+
+  const disc = document.getElementById("disc");
+  const timeDisplay = document.getElementById("time");
+  const seekBar = document.getElementById("seek");
+  const playPauseBtn = document.getElementById("playPause");
+
+  // Load YouTube API
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.body.appendChild(tag);
+
+  // Your YouTube video ID
+  const VIDEO_ID = "NJuSStkIZBg";
+
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player("yt", {
+      height: "0",
+      width: "0",
+      videoId: VIDEO_ID,
+      playerVars: { autoplay: 0, controls: 0 },
+      events: {
+        onReady: onPlayerReady,
+        onStateChange: onPlayerStateChange
+      }
+    });
+  }
+
+  function onPlayerReady() {
+    duration = player.getDuration();
+    seekBar.max = duration;
+    updateTime();
+  }
+
+  function onPlayerStateChange(event) {
+    if (event.data === YT.PlayerState.PLAYING) {
+      disc.style.animationPlayState = "running";
+      isPlaying = true;
+      playPauseBtn.textContent = "Pause";
+    } else {
+      disc.style.animationPlayState = "paused";
+      isPlaying = false;
+      playPauseBtn.textContent = "Play";
+    }
+  }
+
+  playPauseBtn.onclick = () => {
+    if (isPlaying) player.pauseVideo();
+    else player.playVideo();
+  };
+
+  seekBar.oninput = () => {
+    player.seekTo(seekBar.value, true);
+  };
+
+  function updateTime() {
+    if (player && player.getCurrentTime) {
+      const t = Math.floor(player.getCurrentTime());
+      seekBar.value = t;
+
+      const m = String(Math.floor(t / 60)).padStart(2, "0");
+      const s = String(t % 60).padStart(2, "0");
+      timeDisplay.textContent = `${m}:${s}`;
+    }
+    requestAnimationFrame(updateTime);
+  }
+</script>
+
+</body>
+</html>
